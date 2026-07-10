@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.1.1
+- Upload the candidate thumbnail to the remote website (`nlc/` subfolder) so the
+  dashboard banner's image link resolves remotely, not just locally.
+
 ## v0.1.0
 - Initial release.
 - Sun-elevation-gated noctilucent-cloud candidate detector: runs on the day and

@@ -57,7 +57,7 @@ import numpy as np
 metaData = {
     "name": "Noctilucent Cloud Detector",
     "description": "Flags possible noctilucent clouds (NLC) in the twilight sky (sun-elevation gated, sunward horizon band)",
-    "version": "v0.1.0",
+    "version": "v0.1.1",
     "events": [
         "day",
         "night"
@@ -201,6 +201,13 @@ metaData = {
                 "author": "Benjamin Hartwich",
                 "authorurl": "https://astronomy.garden",
                 "changes": "Initial sun-gated, sunward-band noctilucent cloud candidate detector (blue+bright+structured), rolling json + thumbnail for confirmation"
+            }
+        ],
+        "v0.1.1": [
+            {
+                "author": "Benjamin Hartwich",
+                "authorurl": "https://astronomy.garden",
+                "changes": "Also upload the candidate thumbnail to the remote website (nlc/ subfolder) so the dashboard banner's image link works remotely"
             }
         ]
     }
@@ -421,8 +428,10 @@ def _websiteDataDir():
     return website
 
 
-def _uploadRemote(local, fname):
-    """Upload nlc.json to the remote website root. Never raises."""
+def _uploadRemote(local, fname, subdir=""):
+    """Upload a file to the remote website (optionally into a subdir, e.g. 'nlc').
+    The subdir must already exist on the server (upload.sh does not create it).
+    Never raises."""
     try:
         if str(s.getSetting("useremotewebsite")).lower() not in ("true", "1", "yes", "on"):
             return
@@ -432,6 +441,8 @@ def _uploadRemote(local, fname):
         if not os.path.isfile(uploader) or not os.path.isfile(local):
             return
         rdir = (s.getSetting("remotewebsiteimagedir") or "").rstrip("/")
+        if subdir:
+            rdir = f"{rdir}/{subdir.strip('/')}"
         subprocess.Popen([uploader, "--silent", "--wait", "--remote-web", local, rdir, fname, "NLC"],
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except Exception as ex:
@@ -479,7 +490,9 @@ def _saveThumb(bgr, box, publish_web):
         if publish_web:
             wdir = os.path.join(_websiteDataDir(), "nlc")
             os.makedirs(wdir, exist_ok=True)
-            cv2.imwrite(os.path.join(wdir, fname), crop, [cv2.IMWRITE_JPEG_QUALITY, 88])
+            webthumb = os.path.join(wdir, fname)
+            cv2.imwrite(webthumb, crop, [cv2.IMWRITE_JPEG_QUALITY, 88])
+            _uploadRemote(webthumb, fname, subdir="nlc")     # -> remote <root>/nlc/<fname>
         return fname
     except Exception as ex:
         s.log(1, f"WARNING: nlc could not save thumbnail: {ex}")
